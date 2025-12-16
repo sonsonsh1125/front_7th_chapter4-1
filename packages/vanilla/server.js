@@ -3,7 +3,7 @@ import compression from "compression";
 import sirv from "sirv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { readdirSync } from "fs";
+import { readdirSync, readFileSync } from "fs";
 import { render } from "./dist/vanilla-ssr/main-server.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -45,17 +45,26 @@ const assetFiles = findAssetFiles();
 /**
  * HTML 템플릿 생성 함수
  */
-function createHtmlTemplate(html, baseUrl, isProd, assets) {
+function createHtmlTemplate(html, headContent = "", baseUrl, isProd, assets) {
   const cssPath = `${baseUrl}${assets.css}`;
   const jsPath = `${baseUrl}${assets.js}`;
 
-  return `
-<!DOCTYPE html>
+  // 개발 환경에서는 index.html을 읽어서 사용
+  // 프로덕션 환경에서는 빌드된 index.html을 사용
+  let template;
+  try {
+    const templatePath = prod ? join(__dirname, "dist/vanilla/index.html") : join(__dirname, "index.html");
+    template = readFileSync(templatePath, "utf-8");
+  } catch {
+    // 템플릿 파일이 없으면 기본 템플릿 사용
+    template = `
+<!doctype html>
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <!--app-head-->
     <link rel="stylesheet" href="${cssPath}">
     <script>
       tailwind.config = {
@@ -71,10 +80,29 @@ function createHtmlTemplate(html, baseUrl, isProd, assets) {
     </script>
   </head>
   <body class="bg-gray-50">
-    <div id="root">${html}</div>
+    <div id="root"><!--app-html--></div>
     <script type="module" src="${jsPath}"></script>
   </body>
 </html>`.trim();
+  }
+
+  // 플레이스홀더 치환
+  let result = template.replace("<!--app-html-->", html);
+
+  // app-head 치환 (headContent가 있으면 추가, 없으면 제거)
+  if (headContent) {
+    result = result.replace("<!--app-head-->", headContent);
+  } else {
+    result = result.replace("<!--app-head-->", "");
+  }
+
+  // 프로덕션 환경에서 에셋 경로 업데이트
+  if (prod) {
+    result = result.replace(/href="\/src\/styles\.css"/g, `href="${cssPath}"`);
+    result = result.replace(/src="\/src\/main\.js"/g, `src="${jsPath}"`);
+  }
+
+  return result;
 }
 
 /**
