@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const prod = process.env.NODE_ENV === "production";
-const port = process.env.PORT || 5174;
+const port = process.env.PORT || 5173;
 const base = process.env.BASE || (prod ? "/front_7th_chapter4-1/vanilla/" : "/");
 
 const app = express();
