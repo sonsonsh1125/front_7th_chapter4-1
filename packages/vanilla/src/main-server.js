@@ -2,11 +2,48 @@ import { HomePage, NotFoundPage, ProductDetailPage } from "./pages";
 import { BASE_URL } from "./constants.js";
 import { router } from "./router";
 import { getCategories, getProduct, getProducts } from "./api/productApi.js";
-import { productStore, PRODUCT_ACTIONS, initialProductState } from "./stores/index.js";
+import {
+  productStore,
+  PRODUCT_ACTIONS,
+  initialProductState,
+  cartStore,
+  CART_ACTIONS,
+  uiStore,
+  UI_ACTIONS,
+} from "./stores/index.js";
 
 // 서버 환경에서 라우트 등록
 router.addRoute("/", HomePage);
 router.addRoute("/product/:id", ProductDetailPage);
+
+/**
+ * 서버 환경에서 모든 스토어 초기화
+ * 각 요청마다 독립적인 상태를 보장하기 위해 호출
+ */
+function initializeStores() {
+  // Product Store 초기화
+  productStore.dispatch({
+    type: PRODUCT_ACTIONS.SETUP,
+    payload: {
+      ...initialProductState,
+      loading: true,
+      status: "pending",
+    },
+  });
+
+  // Cart Store 초기화 (서버에서는 빈 장바구니)
+  cartStore.dispatch({
+    type: CART_ACTIONS.CLEAR_CART,
+  });
+
+  // UI Store 초기화
+  uiStore.dispatch({
+    type: UI_ACTIONS.CLOSE_CART_MODAL,
+  });
+  uiStore.dispatch({
+    type: UI_ACTIONS.HIDE_TOAST,
+  });
+}
 
 // 서버 사이드 라우트 매칭 함수
 function findRoute(url, baseUrl = "") {
@@ -145,15 +182,8 @@ export const render = async (url, query = {}) => {
     // 서버 환경에서 router 객체 설정
     router.setServerRoute(cleanUrl, query, route.params);
 
-    // 스토어 초기화
-    productStore.dispatch({
-      type: PRODUCT_ACTIONS.SETUP,
-      payload: {
-        ...initialProductState,
-        loading: true,
-        status: "pending",
-      },
-    });
+    // 모든 스토어 초기화 (각 요청마다 독립적인 상태 보장)
+    initializeStores();
 
     // 라우트에 따라 데이터 프리패칭
     if (route.params.id) {
