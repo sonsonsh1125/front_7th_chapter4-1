@@ -38,20 +38,24 @@ function createHtmlTemplate(html, initialData = null) {
 async function getAllProductIds() {
   try {
     // items.json 파일에서 모든 상품 ID 가져오기
-    const itemsPath = join(__dirname, "src/mocks/items.json");
-    if (!fs.existsSync(itemsPath)) {
-      // 상대 경로로도 시도
-      const altPath = join(__dirname, "../../packages/vanilla/src/mocks/items.json");
-      if (fs.existsSync(altPath)) {
-        const items = JSON.parse(fs.readFileSync(altPath, "utf-8"));
+    // 여러 경로 시도
+    const possiblePaths = [
+      join(__dirname, "src/mocks/items.json"),
+      join(__dirname, "../src/mocks/items.json"),
+      join(__dirname, "../../packages/vanilla/src/mocks/items.json"),
+    ];
+
+    for (const itemsPath of possiblePaths) {
+      if (fs.existsSync(itemsPath)) {
+        const items = JSON.parse(fs.readFileSync(itemsPath, "utf-8"));
+        console.log(`✅ items.json 파일 발견: ${itemsPath}`);
         return items.map((item) => item.productId);
       }
-      throw new Error("items.json 파일을 찾을 수 없습니다");
     }
-    const items = JSON.parse(fs.readFileSync(itemsPath, "utf-8"));
-    return items.map((item) => item.productId);
+
+    throw new Error("items.json 파일을 찾을 수 없습니다. 시도한 경로: " + possiblePaths.join(", "));
   } catch (error) {
-    console.error("상품 ID 가져오기 실패:", error);
+    console.error("❌ 상품 ID 가져오기 실패:", error.message);
     return [];
   }
 }
@@ -61,8 +65,23 @@ async function getAllProductIds() {
  */
 async function generateStaticSite() {
   console.log("🚀 정적 사이트 생성 시작...");
+  console.log(`📁 작업 디렉토리: ${__dirname}`);
+
+  // 서버 빌드 파일 확인
+  const serverBuildPath = join(__dirname, "dist/vanilla-ssr/main-server.js");
+  if (!fs.existsSync(serverBuildPath)) {
+    console.error("❌ 서버 빌드 파일을 찾을 수 없습니다:", serverBuildPath);
+    console.error("   먼저 'pnpm run build:server'를 실행해주세요.");
+    process.exit(1);
+  }
 
   const distDir = join(__dirname, "../../dist/vanilla");
+  if (!fs.existsSync(distDir)) {
+    console.error("❌ 클라이언트 빌드 디렉토리를 찾을 수 없습니다:", distDir);
+    console.error("   먼저 'pnpm run build:client-for-ssg'를 실행해주세요.");
+    process.exit(1);
+  }
+
   const baseUrl = BASE_URL;
 
   // 1. 홈 페이지 생성

@@ -9,7 +9,7 @@
     "build:client": "rm -rf ./dist/vanilla && vite build --outDir ./dist/vanilla && cp ./dist/vanilla/index.html ./dist/vanilla/404.html",
     "build:client-for-ssg": "rm -rf ../../dist/vanilla && vite build --outDir ../../dist/vanilla",
     "build:server": "vite build --outDir ./dist/vanilla-ssr --ssr src/main-server.js",
-    "build:ssg": "pnpm run build:client-for-ssg && node static-site-generate.js",
+    "build:ssg": "pnpm run build:client-for-ssg && pnpm run build:server && node static-site-generate.js",
     "build:without-ssg": "pnpm run build:client && pnpm run build:server",
     "build": "pnpm run build:client && pnpm run build:server && pnpm run build:ssg",
     "lint:fix": "eslint --fix ./src",
